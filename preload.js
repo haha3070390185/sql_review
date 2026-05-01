@@ -19,6 +19,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 获取表结构
     getTableStructure: (databaseName, tableName) => ipcRenderer.invoke('get-table-structure', databaseName, tableName),
     
+    // 获取表数据总行数
+    getTableRowCount: (databaseName, tableName) => ipcRenderer.invoke('get-table-row-count', databaseName, tableName),
+    
+    // 获取表数据（分页）
+    getTableData: (databaseName, tableName, limit, offset) => ipcRenderer.invoke('get-table-data', databaseName, tableName, limit, offset),
+    
     // 执行SQL查询
     executeQuery: (sql) => ipcRenderer.invoke('execute-query', sql)
 });

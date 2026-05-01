@@ -5,7 +5,12 @@ const state = {
     currentTable: null,
     databases: [],
     tables: [],
-    tableStructure: null
+    tableStructure: null,
+    tableData: [],
+    totalRows: 0,
+    currentPage: 1,
+    pageSize: 100,
+    totalPages: 0
 };
 
 // MySQL保留关键字列表（常用）
@@ -88,12 +93,22 @@ const elements = {
     databaseList: document.getElementById('databaseList'),
     tableList: document.getElementById('tableList'),
     tableStructure: document.getElementById('tableStructure'),
+    tableData: document.getElementById('tableData'),
     currentDatabase: document.getElementById('currentDatabase'),
     currentTable: document.getElementById('currentTable'),
     refreshTablesBtn: document.getElementById('refreshTablesBtn'),
-    refreshStructureBtn: document.getElementById('refreshStructureBtn'),
+    refreshBtn: document.getElementById('refreshBtn'),
     exportBtn: document.getElementById('exportBtn'),
-    toast: document.getElementById('toast')
+    toast: document.getElementById('toast'),
+    // 选项卡相关
+    structureTab: document.getElementById('structureTab'),
+    dataTab: document.getElementById('dataTab'),
+    // 数据分页相关
+    dataCount: document.getElementById('dataCount'),
+    pageInfo: document.getElementById('pageInfo'),
+    prevPageBtn: document.getElementById('prevPageBtn'),
+    nextPageBtn: document.getElementById('nextPageBtn'),
+    pageSizeSelect: document.getElementById('pageSizeSelect')
 };
 
 // Toast提示
@@ -347,15 +362,193 @@ async function selectTable(tableName) {
     
     state.currentTable = tableName;
     state.tableStructure = null;
+    state.tableData = [];
+    state.totalRows = 0;
+    state.currentPage = 1;
+    state.totalPages = 0;
     
-    elements.currentTable.textContent = `表结构 - ${tableName}`;
-    elements.refreshStructureBtn.disabled = false;
+    elements.currentTable.textContent = `表详情 - ${tableName}`;
+    elements.refreshBtn.disabled = false;
     elements.exportBtn.disabled = false;
     
     renderTableList();
     
     // 加载表结构
     await loadTableStructure(state.currentDatabase, tableName);
+    
+    // 加载表数据
+    await loadTableData();
+}
+
+// 加载表数据
+async function loadTableData() {
+    if (!state.isConnected || !state.currentDatabase || !state.currentTable) {
+        return;
+    }
+    
+    try {
+        // 先获取总行数
+        const countResult = await window.electronAPI.getTableRowCount(
+            state.currentDatabase, 
+            state.currentTable
+        );
+        
+        if (countResult.success) {
+            state.totalRows = countResult.data;
+            state.totalPages = Math.ceil(state.totalRows / state.pageSize);
+            if (state.totalPages === 0 && state.totalRows > 0) {
+                state.totalPages = 1;
+            }
+            if (state.currentPage > state.totalPages && state.totalPages > 0) {
+                state.currentPage = state.totalPages;
+            }
+        }
+        
+        // 然后获取分页数据
+        const offset = (state.currentPage - 1) * state.pageSize;
+        const dataResult = await window.electronAPI.getTableData(
+            state.currentDatabase, 
+            state.currentTable, 
+            state.pageSize, 
+            offset
+        );
+        
+        if (dataResult.success) {
+            state.tableData = dataResult.data || [];
+            renderTableData();
+            updatePagination();
+        } else {
+            showToast(`加载表数据失败: ${dataResult.message}`, 'error');
+        }
+    } catch (error) {
+        showToast(`加载表数据失败: ${error.message}`, 'error');
+    }
+}
+
+// 渲染表数据
+function renderTableData() {
+    if (!state.tableData || state.tableData.length === 0) {
+        if (state.totalRows === 0) {
+            elements.tableData.innerHTML = '<p class="empty-message">该表没有数据</p>';
+        } else {
+            elements.tableData.innerHTML = '<p class="empty-message">请先选择表</p>';
+        }
+        return;
+    }
+    
+    // 获取列名
+    const columns = Object.keys(state.tableData[0]);
+    
+    // 构建表格HTML
+    let html = '<table class="data-table"><thead><tr>';
+    
+    // 表头
+    columns.forEach(col => {
+        html += `<th>${escapeHtml(col)}</th>`;
+    });
+    
+    html += '</tr></thead><tbody>';
+    
+    // 表数据
+    state.tableData.forEach(row => {
+        html += '<tr>';
+        columns.forEach(col => {
+            let value = row[col];
+            if (value === null) {
+                html += '<td class="null-value">NULL</td>';
+            } else if (typeof value === 'object') {
+                // 处理Blob或其他对象类型
+                html += `<td class="binary-data">[Binary Data]</td>`;
+            } else {
+                html += `<td>${escapeHtml(String(value))}</td>`;
+            }
+        });
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    
+    elements.tableData.innerHTML = html;
+}
+
+// HTML转义函数
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 更新分页信息
+function updatePagination() {
+    elements.dataCount.textContent = `共 ${state.totalRows} 条数据`;
+    
+    if (state.totalPages === 0) {
+        elements.pageInfo.textContent = '第 0 页';
+    } else {
+        elements.pageInfo.textContent = `第 ${state.currentPage} / ${state.totalPages} 页`;
+    }
+    
+    // 更新按钮状态
+    elements.prevPageBtn.disabled = state.currentPage <= 1;
+    elements.nextPageBtn.disabled = state.currentPage >= state.totalPages || state.totalPages === 0;
+}
+
+// 上一页
+function prevPage() {
+    if (state.currentPage > 1) {
+        state.currentPage--;
+        loadTableData();
+    }
+}
+
+// 下一页
+function nextPage() {
+    if (state.currentPage < state.totalPages) {
+        state.currentPage++;
+        loadTableData();
+    }
+}
+
+// 切换分页大小
+function changePageSize(size) {
+    state.pageSize = parseInt(size);
+    state.currentPage = 1;
+    loadTableData();
+}
+
+// 选项卡切换
+function switchTab(tabName) {
+    // 移除所有激活状态
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // 激活选中的选项卡
+    document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(`${tabName}Tab`).classList.add('active');
+}
+
+// 刷新当前选项卡内容
+async function refreshCurrentTab() {
+    if (!state.currentDatabase || !state.currentTable) {
+        showToast('请先选择表', 'error');
+        return;
+    }
+    
+    const activeTabBtn = document.querySelector('.tab-btn.active');
+    const tabName = activeTabBtn ? activeTabBtn.dataset.tab : 'structure';
+    
+    if (tabName === 'structure') {
+        await loadTableStructure(state.currentDatabase, state.currentTable);
+        showToast('表结构已刷新', 'success');
+    } else {
+        await loadTableData();
+        showToast('表数据已刷新', 'success');
+    }
 }
 
 // 加载表结构
@@ -549,16 +742,27 @@ function initEventListeners() {
         }
     });
     
-    // 刷新表结构
-    elements.refreshStructureBtn.addEventListener('click', async () => {
-        if (state.currentDatabase && state.currentTable) {
-            await loadTableStructure(state.currentDatabase, state.currentTable);
-            showToast('表结构已刷新', 'success');
-        }
-    });
+    // 刷新按钮（根据当前选项卡刷新）
+    elements.refreshBtn.addEventListener('click', refreshCurrentTab);
     
     // 导出表结构
     elements.exportBtn.addEventListener('click', exportTableStructure);
+    
+    // 选项卡切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchTab(btn.dataset.tab);
+        });
+    });
+    
+    // 分页按钮
+    elements.prevPageBtn.addEventListener('click', prevPage);
+    elements.nextPageBtn.addEventListener('click', nextPage);
+    
+    // 分页大小选择
+    elements.pageSizeSelect.addEventListener('change', (e) => {
+        changePageSize(e.target.value);
+    });
 }
 
 // 初始化

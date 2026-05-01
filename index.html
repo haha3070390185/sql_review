@@ -55,17 +55,50 @@
             </div>
         </div>
 
-        <!-- 右侧表结构面板 -->
-        <div class="structure-panel">
+        <!-- 右侧面板（表结构和表数据） -->
+        <div class="detail-panel">
             <div class="panel-header">
-                <h3 id="currentTable">表结构</h3>
+                <h3 id="currentTable">表详情</h3>
                 <div class="panel-actions">
-                    <button id="refreshStructureBtn" class="btn btn-small" disabled>刷新</button>
+                    <button id="refreshBtn" class="btn btn-small" disabled>刷新</button>
                     <button id="exportBtn" class="btn btn-small btn-success" disabled>导出结构</button>
                 </div>
             </div>
-            <div id="tableStructure" class="structure-container">
-                <p class="empty-message">请先选择表</p>
+            
+            <!-- 选项卡 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="structure">表结构</button>
+                <button class="tab-btn" data-tab="data">表数据</button>
+            </div>
+            
+            <!-- 表结构内容 -->
+            <div id="structureTab" class="tab-content active">
+                <div id="tableStructure" class="structure-container">
+                    <p class="empty-message">请先选择表</p>
+                </div>
+            </div>
+            
+            <!-- 表数据内容 -->
+            <div id="dataTab" class="tab-content">
+                <div class="data-toolbar">
+                    <div class="data-info">
+                        <span id="dataCount">共 0 条数据</span>
+                    </div>
+                    <div class="data-pagination">
+                        <button id="prevPageBtn" class="btn btn-small" disabled>上一页</button>
+                        <span id="pageInfo">第 1 页</span>
+                        <button id="nextPageBtn" class="btn btn-small" disabled>下一页</button>
+                        <select id="pageSizeSelect" class="page-size-select">
+                            <option value="20">20条/页</option>
+                            <option value="50">50条/页</option>
+                            <option value="100" selected>100条/页</option>
+                            <option value="200">200条/页</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="tableData" class="data-container">
+                    <p class="empty-message">请先选择表</p>
+                </div>
             </div>
         </div>
     </div>

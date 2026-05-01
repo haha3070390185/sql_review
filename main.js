@@ -260,3 +260,38 @@ ipcMain.handle('execute-query', async (event, sql) => {
         return { success: false, message: error.message };
     }
 });
+
+// IPC通信：获取表数据总行数
+ipcMain.handle('get-table-row-count', async (event, databaseName, tableName) => {
+    try {
+        if (!dbConnection) {
+            return { success: false, message: '未连接到数据库' };
+        }
+
+        const [rows] = await dbConnection.query(
+            `SELECT COUNT(*) as total FROM ${quoteIdentifier(databaseName)}.${quoteIdentifier(tableName)}`
+        );
+
+        return { success: true, data: rows[0].total };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+});
+
+// IPC通信：获取表数据（分页）
+ipcMain.handle('get-table-data', async (event, databaseName, tableName, limit = 100, offset = 0) => {
+    try {
+        if (!dbConnection) {
+            return { success: false, message: '未连接到数据库' };
+        }
+
+        const [rows] = await dbConnection.query(
+            `SELECT * FROM ${quoteIdentifier(databaseName)}.${quoteIdentifier(tableName)} LIMIT ? OFFSET ?`,
+            [limit, offset]
+        );
+
+        return { success: true, data: rows };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+});
