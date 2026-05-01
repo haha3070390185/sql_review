@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MySQL数据库可视化工具</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧连接面板 -->
+        <div class="connection-panel">
+            <h2>数据库连接</h2>
+            <div class="connection-form">
+                <div class="form-group">
+                    <label for="host">主机地址</label>
+                    <input type="text" id="host" placeholder="localhost" value="localhost">
+                </div>
+                <div class="form-group">
+                    <label for="port">端口</label>
+                    <input type="number" id="port" placeholder="3306" value="3306">
+                </div>
+                <div class="form-group">
+                    <label for="user">用户名</label>
+                    <input type="text" id="user" placeholder="root" value="root">
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" placeholder="输入密码">
+                </div>
+                <div class="form-actions">
+                    <button id="testBtn" class="btn btn-secondary">测试连接</button>
+                    <button id="connectBtn" class="btn btn-primary">连接数据库</button>
+                </div>
+            </div>
+            <div id="connectionStatus" class="status-message"></div>
+            
+            <hr>
+            
+            <!-- 数据库列表 -->
+            <h3>数据库列表</h3>
+            <div id="databaseList" class="list-container">
+                <p class="empty-message">请先连接数据库</p>
+            </div>
+        </div>
+
+        <!-- 中间表面板 -->
+        <div class="tables-panel">
+            <div class="panel-header">
+                <h3 id="currentDatabase">表列表</h3>
+                <button id="refreshTablesBtn" class="btn btn-small" disabled>刷新</button>
+            </div>
+            <div id="tableList" class="list-container">
+                <p class="empty-message">请先选择数据库</p>
+            </div>
+        </div>
+
+        <!-- 右侧面板（表结构和表数据） -->
+        <div class="detail-panel">
+            <div class="panel-header">
+                <h3 id="currentTable">表详情</h3>
+                <div class="panel-actions">
+                    <button id="refreshBtn" class="btn btn-small" disabled>刷新</button>
+                    <button id="exportBtn" class="btn btn-small btn-success" disabled>导出结构</button>
+                </div>
+            </div>
+            
+            <!-- 选项卡 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="structure">表结构</button>
+                <button class="tab-btn" data-tab="data">表数据</button>
+            </div>
+            
+            <!-- 表结构内容 -->
+            <div id="structureTab" class="tab-content active">
+                <div id="tableStructure" class="structure-container">
+                    <p class="empty-message">请先选择表</p>
+                </div>
+            </div>
+            
+            <!-- 表数据内容 -->
+            <div id="dataTab" class="tab-content">
+                <div class="data-toolbar">
+                    <div class="data-info">
+                        <span id="dataCount">共 0 条数据</span>
+                    </div>
+                    <div class="data-pagination">
+                        <button id="prevPageBtn" class="btn btn-small" disabled>上一页</button>
+                        <span id="pageInfo">第 1 页</span>
+                        <button id="nextPageBtn" class="btn btn-small" disabled>下一页</button>
+                        <select id="pageSizeSelect" class="page-size-select">
+                            <option value="20">20条/页</option>
+                            <option value="50">50条/页</option>
+                            <option value="100" selected>100条/页</option>
+                            <option value="200">200条/页</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="tableData" class="data-container">
+                    <p class="empty-message">请先选择表</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
